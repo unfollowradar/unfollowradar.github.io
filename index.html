@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'">
+<title>Unfollow Radar</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--tx:#eef0f4;--mut:#9aa3b2;--ac:#7c5cff;--ok:#2ecc71;--warn:#ffb020}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+main{max-width:920px;margin:0 auto;padding:24px 16px 80px}
+h1{font-size:28px;margin:8px 0}h2{font-size:18px;margin:0 0 4px}p{color:var(--mut);margin:6px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}
+ol{color:var(--mut);padding-left:20px}ol li{margin:4px 0}b{color:var(--tx)}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:28px;text-align:center;cursor:pointer}
+.drop.on{border-color:var(--ac)}
+button,.btn{min-height:40px;background:var(--ac);color:#fff;border:0;border-radius:9px;padding:8px 14px;font-size:14px;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--tx)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:#10131a;border:1px solid var(--line);border-radius:10px;padding:12px}.stat b{font-size:24px;display:block}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.cols{grid-template-columns:1fr}}
+.list{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}.row a{color:var(--tx);text-decoration:none;word-break:break-all}.row a:hover{color:var(--ac)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}input[type=search]{flex:1;min-width:160px;background:#10131a;border:1px solid var(--line);color:var(--tx);border-radius:9px;padding:8px 12px}
+.pill{font-size:12px;color:var(--mut)}.err{color:var(--warn)}
+.tabs{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}.tabs button{background:transparent;border:1px solid var(--line)}.tabs button.on{background:var(--ac);border-color:var(--ac)}
+details{color:var(--mut)}
+.demo{background:#3a2a00;border-bottom:2px solid var(--warn);color:#ffd98a;text-align:center;padding:8px 12px;font-size:14px;position:sticky;top:0;z-index:5}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
+.plan{background:#10131a;border:1px solid var(--line);border-radius:12px;padding:14px}.plan.best{border-color:var(--ac)}
+.plan .pr{font-size:26px;font-weight:700;color:var(--tx)}.plan ul{padding-left:18px;margin:8px 0;color:var(--mut);font-size:14px}
+.lock{padding:10px 12px;color:var(--warn);font-size:14px}
+</style><style>#gate{position:fixed;inset:0;background:#0b0b0f;color:#fff;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:-apple-system,system-ui,sans-serif}#gate form{width:min(320px,86vw);text-align:center}#gate input,#gate button{width:100%;box-sizing:border-box;padding:14px;margin-top:10px;border-radius:10px;border:1px solid #444;font-size:16px}#gate button{background:#fff;color:#000;font-weight:600}#gerr{color:#f77;min-height:1.2em;margin-top:8px;font-size:14px}body.locked>*:not(#gate){display:none!important}</style></head><body class="locked"><div id="gate"><form id="gf"><h2>Unfollow Radar</h2><p style="color:#aaa;font-size:14px">Private preview. Enter the passcode to continue.</p><input id="gp" type="password" autocomplete="off" autocapitalize="off" placeholder="Passcode"><button type="submit">Unlock</button><div id="gerr"></div></form></div><div class="demo">DEMO - pricing preview only. No payment is taken, nothing here is live, and your file never leaves this page.</div><main>
+<h1>Unfollow Radar</h1>
+<p>See everyone you follow who doesn't follow you back, split into big accounts and regular accounts. Regular accounts are your most likely unfollow candidates.</p>
+
+<div class="card" id="login"></div>
+<div class="card"><h2>1. Get your data from Instagram (free, official)</h2>
+<p>Instagram doesn't let any website pull your lists from just a username, and scraping breaks its rules and can get accounts locked. Instagram's own data download has the full lists, so this page uses that.</p>
+<ol><li>Instagram app: <b>Settings &gt; Accounts Center &gt; Your information and permissions &gt; Download your information</b>.</li>
+<li>Choose <b>Some of your information</b>, tick <b>Followers and following</b>, set format to <b>JSON</b>, date range <b>All time</b>.</li>
+<li>When Instagram emails the download (minutes to a day), unzip it and open the <b>connections/followers_and_following</b> folder.</li></ol>
+<p class="pill">Pricing (demo): free trial shows a random half of your results, once. $3 unlocks one upload. $7 unlocks every upload. Your file never leaves this page.</p>
+<div class="drop" id="drop"><b>Drop the ZIP, or followers_1.json and following.json here</b><p>or click to choose files. HTML exports work too. Everything stays in your browser. Nothing is uploaded.</p>
+<input id="file" type="file" multiple accept=".zip,.json,.html,.htm" hidden></div>
+<p id="msg" class="err"></p></div>
+
+<div id="out" hidden>
+<div class="card" id="paywall"></div>
+<div class="card"><div class="stats" id="stats"></div><p id="read"></p><details id="deadwrap" hidden><summary id="deadsum"></summary><div class="list" id="deadlist" style="margin-top:8px;max-height:200px"></div></details></div>
+<div class="card"><h2>Following who don't follow back</h2>
+<p>Instagram's export has no follower counts, so "big" is a best guess: a built-in list of well-known handles and keywords like official, news, tv, fc, plus your own marking. Tap <b>Move</b> on any row to fix it. Your choices are saved on this device.</p>
+<div class="tools"><input type="search" id="q" placeholder="Search usernames"><button class="ghost" id="dl">Download CSV</button><button class="ghost" id="copy">Copy unfollow list</button><button class="ghost" id="exp">Save my big/regular choices</button><button class="ghost" id="imp">Load choices</button><input id="impf" type="file" accept=".json" hidden></div>
+<div class="cols"><div><h2>Regular accounts <span class="pill" id="nReg"></span></h2><p>Likely unfollow candidates</p><div class="list" id="reg"></div></div>
+<div><h2>Big accounts <span class="pill" id="nBig"></span></h2><p>Celebs, teams, brands, creators</p><div class="list" id="big"></div></div></div></div>
+<div class="card"><h2>Side by side</h2><div class="tabs" id="tabs"></div><div class="cols"><div><h2>Followers <span class="pill" id="nFers"></span></h2><div class="list" id="lf"></div></div><div><h2>Following <span class="pill" id="nFing"></span></h2><div class="list" id="lg"></div></div></div></div>
+<div class="card"><details><summary>Fans: follow you, you don't follow back</summary><div class="list" id="fans" style="margin-top:8px"></div></details></div>
+</div>
+<p class="pill" style="text-align:center;margin-top:30px">Works offline: turn on airplane mode and try it. Not affiliated with or endorsed by Instagram or Meta. <a href="#" id="wipe" style="color:var(--mut)">Clear all my data</a></p>
+</main>
+<script>
+// Seed list of very large accounts (lowercase). Best guess only; users can override.
+const SEED=`instagram cristiano leomessi selenagomez therock kyliejenner arianagrande kimkardashian beyonce khloekardashian justinbieber kendalljenner natgeo nike neymarjr taylorswift nickiminaj virat.kohli jlo mileycyrus katyperry zendaya kourtneykardash champagnepapi realmadrid fcbarcelona nba espn bleacherreport sportscenter nfl mlb nhl nhlbruins bruins patriots celtics redsox bostonredsox lakers warriors manchesterunited liverpoolfc chelseafc arsenal mancity psg brgfootball houseofhighlights dunkest barstoolsports uefachampionsleague fifa premierleague ufc wwe fcbayern juventus acmilan inter realmadrid f1 nascar tomhardy tomholland1996 chrishemsworth robertdowneyjr vindiesel dwaynejohnson shawnmendes camila_cabello billieeilish dualipa postmalone champagnepapi drake travisscott cardib badgalriri rihanna ddlovato lilnasx jbalvin badbunny kingjames stephencurry30 luka7doncic giannis_an34 patrickmahomes tombrady lewishamilton mrbeast kevinhart4real jimmyfallon netflix hbo disney marvel starbucks mcdonalds redbull gopro nasa spacex tesla apple google youtube tiktok spotify espnnfl nfl bleacherreport barstoolsports`.split(/\s+/);
+const SEEDSET=new Set(SEED);
+// Storage can be blocked (private mode, data:/file: pages in some browsers). Fall back to memory so the page still works.
+const store=(()=>{try{const t='__probe';localStorage.setItem(t,'1');localStorage.removeItem(t);return localStorage}catch(e){const m={};return{getItem:k=>k in m?m[k]:null,setItem:(k,v)=>{m[k]=String(v)},removeItem:k=>{delete m[k]},clear:()=>{Object.keys(m).forEach(k=>delete m[k])}}}})();
+let D={fers:new Set(),fing:new Set(),pend:new Set(),dead:new Set(),blank:0},over=JSON.parse(store.getItem('igOver')||'{}'),done=JSON.parse(store.getItem('igDone')||'{}'),LIM=300,more={};
+const $=id=>document.getElementById(id);
+// DEMO ACCESS STATE (stored on this device only). Real version: server-issued payment token.
+// Demo accounts: email only, no password, no email is sent. Real version: magic-link sign-in on a server.
+let users=JSON.parse(store.getItem('igUsers')||'{}'),cur=store.getItem('igCur')||'';
+const blank=()=>({trialUsed:false,credits:0,lifetime:false});
+let acc=cur&&users[cur]?users[cur]:blank();
+const saveAcc=()=>{if(cur){users[cur]=acc;store.setItem('igUsers',JSON.stringify(users))}};
+const CAP=50;
+function hsh(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+// Half = a stable pseudo-random half (same file shows the same half), at most CAP rows per list.
+const halfOf=a=>a.slice().sort((x,y)=>hsh(D.seed+x)-hsh(D.seed+y)).slice(0,Math.min(CAP,Math.ceil(a.length/2))).sort();
+const sh=a=>D.mode==='full'?a:D.mode==='half'?halfOf(a):[];
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// Instagram marks deleted/deactivated accounts as __deleted__* placeholders, or leaves
+// the entry with no username at all. Those are separated out instead of counted as people.
+const DEADRE=/^__deleted__/i;
+function userFromHref(h){const m=/instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)/.exec(h||'');return m?m[1].toLowerCase():null}
+function walkJson(o,r){
+  if(Array.isArray(o)){o.forEach(x=>walkJson(x,r));return}
+  if(o&&typeof o==='object'){
+    if(Array.isArray(o.string_list_data)){
+      o.string_list_data.forEach(s=>{
+        const u=(s.value||userFromHref(s.href)||o.title||'').toString().toLowerCase();
+        if(!u)r.blank++;
+        else if(DEADRE.test(u))r.dead.add(u);
+        else r.live.add(u)});
+      return}
+    Object.values(o).forEach(x=>walkJson(x,r))}}
+function parseHtml(t,r){const re=/href="https?:\/\/(?:www\.)?instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)"/g;let m;while(m=re.exec(t)){const u=m[1].toLowerCase();if(DEADRE.test(u))r.dead.add(u);else r.live.add(u)}}
+function parseText(name,text){
+  const r={live:new Set(),dead:new Set(),blank:0};
+  if(/\.json$/i.test(name)){try{walkJson(JSON.parse(text),r)}catch(e){}}else parseHtml(text,r);
+  return r}
+// Minimal ZIP reader using the browser's DecompressionStream
+async function readZip(buf){
+  const dv=new DataView(buf),u8=new Uint8Array(buf),files=[];
+  let e=u8.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;
+  if(e<0)throw new Error('Not a valid zip');
+  const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);
+  for(let i=0;i<n;i++){
+    const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),el=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),off=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(u8.subarray(p+46,p+46+nl));p+=46+nl+el+cl;
+    if(!/(followers|following|pending_follow_requests)[^/]*\.(json|html?)$/i.test(name))continue;
+    const lnl=dv.getUint16(off+26,true),lel=dv.getUint16(off+28,true),start=off+30+lnl+lel;
+    let data=u8.subarray(start,start+csize);
+    if(method===8){const ds=new DecompressionStream('deflate-raw');data=new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer())}
+    files.push({name,text:new TextDecoder().decode(data)})}
+  return files}
+async function handle(list){
+  $('msg').textContent='';let items=[],cnt={fers:0,fing:0};
+  try{for(const f of list){
+    if(/\.zip$/i.test(f.name))items.push(...await readZip(await f.arrayBuffer()));
+    else items.push({name:f.name,text:await f.text()})}}
+  catch(e){$('msg').textContent='Could not read that file: '+e.message;return}
+  const fers=new Set(),fing=new Set(),pend=new Set(),dead=new Set();let blank=0;
+  for(const it of items){
+    const base=it.name.split('/').pop().toLowerCase();
+    const r=parseText(base,it.text);
+    const take=set=>{r.live.forEach(u=>set.add(u));r.dead.forEach(u=>dead.add(u));blank+=r.blank};
+    if(/^pending/.test(base)&&/follow_requests/.test(base))take(pend);
+    else if(/^followers/.test(base)){cnt.fers++;take(fers)}
+    else if(/^following/.test(base)&&!/hashtag|recently|pending/.test(base)){cnt.fing++;take(fing)}
+    else if(/^pending|^recent|^removed|^close|^blocked|^unfollowed|^hashtag|^custom/.test(base)){}
+  }
+  if(!fers.size||!fing.size){D.cnt=cnt;$('msg').textContent=`Found ${fers.size} followers and ${fing.size} following. I need both files (followers_1.json and following.json). If you have followers_2.json etc, add them too.`;return}
+  const prev=JSON.parse(store.getItem('igSnap')||'null');
+  D={mode:'locked',fers,fing,pend,cnt,dead,blank,left:prev?prev.fers.filter(u=>!fers.has(u)):null,snapDate:prev&&prev.date};
+  D.seed=String(hsh([...fers].sort().join(',')+'|'+[...fing].sort().join(',')));
+  applyMode();
+  try{store.setItem('igSnap',JSON.stringify({date:new Date().toLocaleDateString(),fers:[...fers]}))}catch(e){}
+  render()}
+const KW=/(official|^fc|fc$|^nba|^nfl|^nhl|^mlb|news|^tv|tv$|^espn|records|media|magazine)/;
+function isBig(u){return u in over?over[u]:(SEEDSET.has(u)||KW.test(u))}
+let tab='all';
+function row(u,btn){const d=done[u];return `<div class="row" style="${d?'opacity:.45':''}"><a href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener">@${esc(u)}</a><span>${btn||''}<button class="ghost" data-d="${esc(u)}">${d?'Undo':'Done'}</button></span></div>`}
+function lim(k,a,mk){const n=more[k]||LIM;return a.slice(0,n).map(mk).join('')+(a.length>n?`<div class="row"><button class="ghost" data-m="${k}">Show more (${a.length-n} left)</button></div>`:'')}
+function render(){
+  const {fers,fing,pend,cnt,left,snapDate,dead=new Set(),blank=0}=D,q=$('q').value.trim().toLowerCase();
+  const nfb=[...fing].filter(u=>!fers.has(u)).sort(),fans=[...fers].filter(u=>!fing.has(u)).sort(),mutual=[...fing].filter(u=>fers.has(u)).length;
+  const big=nfb.filter(isBig),reg=nfb.filter(u=>!isBig(u));
+  $('out').hidden=false;
+  const dn=nfb.filter(u=>done[u]).length;
+  const nGone=dead.size+blank;
+  $('read').innerHTML=`Read ${cnt.fers} followers file(s) and ${cnt.fing} following file(s).`+(nGone?` Removed ${nGone} deleted or deactivated account${nGone===1?'':'s'} (${dead.size?`${dead.size} labeled __deleted__\u2026`:''}${dead.size&&blank?', ':''}${blank?`${blank} with no username at all`:''}).`:'')+(pend.size?` ${pend.size} pending requests (not counted as non-followers).`:'')+(left&&D.mode==='full'?` Since your last upload${snapDate?' on '+snapDate:''}, ${left.length} people left your followers${left.length?': '+left.slice(0,15).map(u=>'@'+esc(u)).join(', ')+(left.length>15?' ...':''):'.'}`:' Next time you upload, this page will show who left since now.')+` Snapshot only: renamed accounts may show as non-followers, and a deleted account that still has a normal username in the file cannot be told apart from a live one. Done: ${dn}/${nfb.length}. Don't unfollow hundreds at once, Instagram limits fast actions.`;
+  const dw=$('deadwrap');
+  if(dead.size){dw.hidden=false;$('deadsum').textContent=`Deleted/deactivated accounts removed (${dead.size})`;$('deadlist').innerHTML=[...dead].sort().map(u=>`<div class="row"><span class="pill">${esc(u)}</span></div>`).join('')}else dw.hidden=true;
+  $('stats').innerHTML=[['Followers',fers.size],['Following',fing.size],['Mutual',mutual],['Don\'t follow back',nfb.length],['Regular (unfollow?)',reg.length],['Big accounts',big.length]].map(([a,b])=>`<div class="stat"><b>${b.toLocaleString()}</b>${a}</div>`).join('');
+  const f=a=>{a=sh(a);return q?a.filter(u=>u.includes(q)):a};
+  renderPay(reg.length+big.length);
+  $('reg').innerHTML=lim('reg',f(reg),u=>row(u,`<button class="ghost" data-u="${esc(u)}" data-v="1">Move to big</button>`))||'<div class="row pill">None</div>';
+  $('big').innerHTML=lim('big',f(big),u=>row(u,`<button class="ghost" data-u="${esc(u)}" data-v="0">Move to regular</button>`))||'<div class="row pill">None</div>';
+  $('nReg').textContent=`(${reg.length})`;$('nBig').textContent=`(${big.length})`;
+  $('tabs').innerHTML=[['all','Everyone'],['nfb','Not following back'],['fans','Fans']].map(([k,l])=>`<button class="${tab===k?'on':''}" data-t="${k}">${l}</button>`).join('');
+  const L=[...fers].sort(),G=[...fing].sort(),pick=a=>tab==='nfb'?a.filter(u=>!fers.has(u)||!fing.has(u)):tab==='fans'?a.filter(u=>!fing.has(u)||!fers.has(u)):a;
+  const lf=tab==='nfb'?[]:tab==='fans'?fans:L, lg=tab==='nfb'?nfb:tab==='fans'?[]:G;
+  $('lf').innerHTML=lim('lf',f(lf),u=>row(u))||'<div class="row pill">None</div>';
+  $('lg').innerHTML=lim('lg',f(lg),u=>row(u))||'<div class="row pill">None</div>';
+  $('nFers').textContent=`(${lf.length})`;$('nFing').textContent=`(${lg.length})`;
+  $('fans').innerHTML=lim('fans',f(fans),u=>row(u))||'<div class="row pill">None</div>';
+}
+// Decide what this upload shows. Signed out: counts only, trial not used until sign-in.
+function applyMode(){
+  if(!cur){D.mode='locked';return}
+  if(acc.lifetime)D.mode='full';
+  else if(acc.credits>0){acc.credits--;D.mode='full'}
+  else if(!acc.trialUsed){acc.trialUsed=true;D.mode='half'}
+  else D.mode='locked';
+  saveAcc();renderLogin()}
+function renderLogin(){
+  $('login').innerHTML=cur?`<h2>Account (demo)</h2><p>Signed in as <b>${esc(cur)}</b>. Free trial ${acc.trialUsed?'used':'available'}${acc.lifetime?', lifetime unlocked':''}. <button class="ghost" id="so">Sign out</button></p>`
+  :`<h2>Sign in or create an account (demo)</h2><p>Your account remembers your free trial and anything you unlock. Instagram passwords are never asked for, and your Instagram file stays on this device.</p>
+<div class="tools"><input type="email" id="em" placeholder="you@example.com" style="flex:1;min-width:200px;background:#10131a;border:1px solid var(--line);color:var(--tx);border-radius:9px;padding:8px 12px"><button id="si">Continue (demo)</button></div>
+<p class="pill">Demo only: no email is sent, no code, nothing is stored except in this browser.</p>`;
+  const si=$('si');if(si)si.onclick=()=>{const e=$('em').value.trim().toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){$('em').style.borderColor='#ffb020';return}cur=e;store.setItem('igCur',cur);acc=users[cur]||blank();saveAcc();renderLogin();if(D.fers&&D.fers.size){applyMode();render()}};
+  const so=$('so');if(so)so.onclick=()=>{cur='';store.removeItem('igCur');acc=blank();D={fers:new Set(),fing:new Set(),pend:new Set(),dead:new Set(),blank:0};$('out').hidden=true;renderLogin()}}
+renderLogin();
+function renderPay(total){
+  const m=D.mode,shown=Math.min(CAP,Math.ceil(total/2));
+  const plans=`<div class="plans"><div class="plan"><h2>Free trial</h2><div class="pr">$0</div><ul><li>One time only</li><li>Half of your results</li></ul></div>
+<div class="plan"><h2>One use</h2><div class="pr">$3</div><ul><li>Full results for one upload</li></ul>${m==='full'&&!acc.lifetime?'<span class="pill">Unlocked</span>':'<button data-p="single">Demo: unlock for $3</button>'}</div>
+<div class="plan best"><h2>Lifetime</h2><div class="pr">$7</div><ul><li>Full results, every upload, forever</li></ul>${acc.lifetime?'<span class="pill">Unlocked</span>':'<button data-p="life">Demo: unlock for $7</button>'}</div></div>
+<p class="pill">Demo buttons only. No payment is taken. <a href="#" data-p="reset" style="color:var(--mut)">Reset demo</a></p>`;
+  const msg=m==='full'?`<h2>Full results unlocked${acc.lifetime?' (lifetime)':''}</h2><p>You are seeing everything.</p>`
+   :m==='half'?`<h2>Free trial: showing half of your results</h2><p>You see a random ${shown} of ${total} accounts that don't follow back, in every list below. Unlock the rest, including CSV and copy list. Your file stays on this device either way.</p>`
+   :!cur?`<h2>Your counts are ready</h2><p>${total} accounts don't follow back. Sign in above (demo) to start your free trial and see a random half of them.</p>`
+   :`<h2>Your free trial is used</h2><p>Your counts are above (${total} don't follow back). Unlock to see the accounts.</p>`;
+  $('paywall').innerHTML=msg+(m==='full'&&acc.lifetime?'':plans)+(m==='full'&&acc.lifetime?'<p class="pill"><a href="#" data-p="reset" style="color:var(--mut)">Reset demo</a></p>':'')}
+function csv(){
+  if(D.mode!=='full')return 'Unlock full results to download the list';
+  const {fers,fing}=D;const rows=[['username','category','link']];
+  [...fing].filter(u=>!fers.has(u)).sort().forEach(u=>rows.push([u,isBig(u)?'big':'regular',`https://instagram.com/${u}`]));
+  return rows.map(r=>r.join(',')).join('\n')}
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a[data-p]');if(a)e.preventDefault();
+  const b=e.target.closest('button,a[data-p]');if(!b)return;
+  if(b.dataset.p){const p=b.dataset.p;
+    if(p==='single'){D.mode='full'}
+    if(p==='life'){acc.lifetime=true;D.mode='full'}
+    if(p==='reset'){acc=blank();saveAcc();renderLogin();D.mode=D.fers&&D.fers.size?'half':'locked'}
+    saveAcc();renderLogin();render();return}
+  if(b.dataset.u){over[b.dataset.u]=b.dataset.v==='1';store.setItem('igOver',JSON.stringify(over));render()}
+  if(b.dataset.t){tab=b.dataset.t;render()}
+  if(b.dataset.d){const u=b.dataset.d;if(done[u])delete done[u];else done[u]=1;store.setItem('igDone',JSON.stringify(done));render()}
+  if(b.dataset.m){more[b.dataset.m]=(more[b.dataset.m]||LIM)+LIM;render()}});
+let tm;$('q').addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(render,150)});
+$('wipe').onclick=e=>{e.preventDefault();store.clear();over={};done={};location.reload()};
+$('dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv()],{type:'text/csv'}));a.download='not-following-back.csv';a.click()};
+$('copy').onclick=()=>{const {fers,fing}=D;const txt=D.mode!=='full'?'Unlock full results to copy the list':[...fing].filter(u=>!fers.has(u)&&!isBig(u)).sort().join('\n');try{navigator.clipboard.writeText(txt)}catch(e){const t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}$('copy').textContent='Copied';setTimeout(()=>$('copy').textContent='Copy unfollow list',1500)};
+$('exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(over)],{type:'application/json'}));a.download='big-account-choices.json';a.click()};
+$('imp').onclick=()=>$('impf').click();
+$('impf').onchange=async()=>{try{over=Object.assign(over,JSON.parse(await $('impf').files[0].text()));store.setItem('igOver',JSON.stringify(over));render()}catch(e){$('msg').textContent='Could not read that choices file'}};
+const drop=$('drop'),file=$('file');
+drop.onclick=()=>file.click();file.onchange=()=>handle([...file.files]);
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('on')};drop.ondragleave=()=>drop.classList.remove('on');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('on');handle([...e.dataTransfer.files])};
+</script><script>(function(){var SALT="37afa2ace9cc2394",HASH="74f7c204a9347250684cd87fec4caddfcd276a2ae0186d510b3dc2cb8a0da8cf";function sha256(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
+function open(){document.body.classList.remove("locked");var g=document.getElementById("gate");if(g)g.remove()}
+try{if(sessionStorage.getItem("ig_gate")===HASH)open()}catch(e){}
+document.getElementById("gf").addEventListener("submit",function(e){e.preventDefault();var v=document.getElementById("gp").value.trim().toLowerCase();if(!window.crypto||!crypto.subtle){document.getElementById("gerr").textContent="Open this over https";return}sha256(SALT+v).then(function(d){if(d===HASH){try{sessionStorage.setItem("ig_gate",HASH)}catch(x){}open()}else{document.getElementById("gerr").textContent="Wrong passcode";document.getElementById("gp").value=""}})});})();</script></body></html>
